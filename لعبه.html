@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أسئلة عني!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #e0f7fa;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            color: #00695c;
+        }
+        h1 {
+            font-size: 2.5rem;
+            animation: fadeIn 2s;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 20px auto;
+            animation: slideIn 1s;
+        }
+        .question {
+            margin-bottom: 30px;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .options button {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            background-color: #00796b;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 1.1rem;
+        }
+        .options button:hover {
+            background-color: #004d40;
+            transform: scale(1.05);
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #004d40;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- صفحة إدخال الاسم -->
+    <div id="namePage" class="container">
+        <h1>مرحبًا!</h1>
+        <p>من فضلك أدخل اسمك للبدء:</p>
+        <input type="text" id="userName" placeholder="اسمك" style="padding: 10px; font-size: 1rem; border: 2px solid #00796b; border-radius: 5px;">
+        <button onclick="startQuiz()" style="margin-top: 15px;">ابدأ</button>
+    </div>
+
+    <!-- صفحة الأسئلة -->
+    <div id="quizPage" class="container hidden">
+        <h1 id="questionTitle"></h1>
+        <div class="options" id="optionsContainer"></div>
+    </div>
+
+    <!-- صفحة النتيجة -->
+    <div id="resultPage" class="container hidden">
+        <h1>النتيجة النهائية</h1>
+        <div class="result" id="finalResult"></div>
+    </div>
+
+    <script>
+        // تهيئة EmailJS
+        emailjs.init('eb4aiAyRJS-7e6R0e'); // استبدل بـ User ID الخاص بك
+
+        let userName = '';
+        let score = 0;
+        let currentQuestion = 0;
+
+        const questions = [
+            { question: "ما هي النكهة المفضلة لدي؟", options: ["شوكولاته", "فانيليا", "فراولة"], answer: "شوكولاته" },
+            { question: "ما هو نوع الموسيقى المفضل لدي؟", options: ["هيب هوب", "روك", "كلاسيك"], answer: "كلاسيك" },
+            { question: "ما هي الهواية المفضلة لدي؟", options: ["الرسم", "القراءة", "السباحة"], answer: "الرسم" },
+            { question: "ما هو الحيوان المفضل لدي؟", options: ["قطة", "كلب", "طائر"], answer: "قطة" },
+            { question: "ما هو طعامي المفضل؟", options: ["بيتزا", "برجر", "سوشي"], answer: "برجر" },
+            { question: "ما هو مشروبي المفضل؟", options: ["قهوة", "شاي", "عصير برتقال"], answer: "قهوة" },
+            { question: "ما هو الفصل المفضل لدي؟", options: ["الربيع", "الصيف", "الشتاء"], answer: "الشتاء" },
+            { question: "ما هو الفيلم المفضل لدي؟", options: ["Inception", "The Dark Knight", "Interstellar"], answer: "The Dark Knight" },
+            { question: "ما هي لوحتي المفضلة؟", options: ["لوحة الموناليزا", "لوحة دوار الشمس", "لوحة الصرخة"], answer: "لوحة دوار الشمس" },
+            { question: "ما هو المكان المفضل لزيارته؟", options: ["باريس", "طوكيو", "نيويورك"], answer: "نيويورك" },
+            { question: "ما هو الرياضة المفضلة لدي؟", options: ["كرة القدم", "التنس", "السباحة"], answer: "السباحة" },
+            { question: "ما هو الوقت المفضل لدي في اليوم؟", options: ["الصباح", "الظهيرة", "المساء"], answer: "المساء" },
+            { question: "ما هو النوع المفضل لدي من الأفلام؟", options: ["أكشن", "كوميدي", "دراما"], answer: "أكشن" },
+            { question: "ما هو الطبق المفضل لدي؟", options: ["معكرونة", "بيتزا", "سوشي"], answer: "معكرونة" },
+            { question: "ما هو المشروب الساخن المفضل لدي؟", options: ["شاي أخضر", "قهوة سوداء", "كابتشينو"], answer: "قهوة سوداء" }
+        ];
+
+        // دالة للبدء بالأسئلة
+        function startQuiz() {
+            userName = document.getElementById('userName').value;
+            if (userName.trim() === '') {
+                alert('من فضلك أدخل اسمك!');
+                return;
+            }
+            document.getElementById('namePage').classList.add('hidden');
+            document.getElementById('quizPage').classList.remove('hidden');
+            sendNotification(userName);
+            showQuestion();
+        }
+
+        // دالة لعرض السؤال الحالي
+        function showQuestion() {
+            const question = questions[currentQuestion];
+            document.getElementById('questionTitle').textContent = question.question;
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            question.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option, button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        // دالة للتحقق من الإجابة
+        function checkAnswer(selectedAnswer, button) {
+            const correctAnswer = questions[currentQuestion].answer;
+            if (selectedAnswer === correctAnswer) {
+                score += 1;
+                button.style.backgroundColor = '#4caf50'; // لون أخضر للإجابة الصحيحة
+            } else {
+                button.style.backgroundColor = '#f44336'; // لون أحمر للإجابة الخاطئة
+            }
+            button.disabled = true;
+            setTimeout(() => {
+                currentQuestion++;
+                if (currentQuestion < questions.length) {
+                    showQuestion();
+                } else {
+                    showResult();
+                }
+            }, 1000);
+        }
+
+        // دالة لعرض النتيجة النهائية
+        function showResult() {
+            document.getElementById('quizPage').classList.add('hidden');
+            document.getElementById('resultPage').classList.remove('hidden');
+            document.getElementById('finalResult').innerHTML = `
+                <h2>${userName}، لقد حصلت على ${score} من ${questions.length} نقاط!</h2>
+                <p>شكرًا لتجربة الأسئلة!</p>
+            `;
+        }
+
+        // دالة للحصول على بلد المستخدم
+        async function getCountry() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                return data.country_name;
+            } catch (error) {
+                console.error('Error fetching country:', error);
+                return 'غير معروف';
+            }
+        }
+
+        // دالة لإرسال إشعار إلى البريد الإلكتروني
+        async function sendNotification(name) {
+            const country = await getCountry();
+            emailjs.send('service_inemokh', 'template_5nrgbic', {
+                to_email: 'cse2594@gmail.com', // استبدل ببريدك الإلكتروني
+                name: name,
+                country: country
+            }).then(response => {
+                console.log('تم إرسال الإشعار!', response);
+            }).catch(error => {
+                console.error('فشل الإرسال:', error);
+            });
+        }
+    </script>
+
+</body>
+</html>
